@@ -4,7 +4,6 @@ from sklearn.preprocessing import LabelBinarizer
 import adi
 import numpy as np
 
-
 np.seterr(divide='ignore', invalid='ignore')
 
 # Create radio
