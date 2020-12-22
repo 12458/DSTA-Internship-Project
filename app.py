@@ -1,8 +1,9 @@
 import numpy as np
-import tensorflow as tf
-from sklearn.preprocessing import LabelBinarizer
 import adi
-import numpy as np
+import iio
+import tflite_runtime.interpreter as tflite
+
+#from sklearn.preprocessing import LabelBinarizer
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -22,8 +23,8 @@ print("RX LO %s" % (sdr.rx_lo))
 mod_types = ['a16QAM', 'a64QAM', 'b8PSK', 'bQPSK', 'cCPFSK', 'cGFSK', 'd4PAM', 'dBPSK']
 
 # fit a label binarizer
-mod_to_onehot = LabelBinarizer()
-mod_to_onehot.fit(mod_types)
+# mod_to_onehot = LabelBinarizer()
+# mod_to_onehot.fit(mod_types)
 
 # transform the y values to one-hot encoding
 # y_train = mod_to_onehot.transform(y_train)
@@ -52,7 +53,7 @@ def arr_iq2ap(X):
 
 
 # Load the TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="model/cldnn_ap_model.tflite")
+interpreter = tflite.Interpreter(model_path="model/cldnn_ap_model.tflite")
 interpreter.allocate_tensors()
 
 count = dict.fromkeys(mod_types, 0)
@@ -77,9 +78,9 @@ for i in range(1000):
     # Use `tensor()` in order to get a pointer to the tensor.
 
     output_data = interpreter.get_tensor(output_details[0]['index'])
+    index = np.argmax(output_data)
     # print(output_data)
-    modulation_guess = mod_to_onehot.inverse_transform(output_data)[0]
-    # time.sleep(0.1)
-    count[modulation_guess] += 1
+    # modulation_guess = mod_to_onehot.inverse_transform(output_data)[0]
+    count[mod_types[index]] += 1
 
 print(count)
