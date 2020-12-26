@@ -1,6 +1,5 @@
 import numpy as np
-import adi
-import iio
+import time
 import tflite_runtime.interpreter as tflite
 import subprocess
 import shlex
@@ -57,12 +56,15 @@ interpreter = tflite.Interpreter(model_path='model.tflite')
 interpreter.allocate_tensors()
 
 count = dict.fromkeys(mod_types, 0)
+
+time.sleep(1)
+
 for i in range(10):
     process = subprocess.Popen(['iio_readdev', '-u', 'ip:192.168.2.1', '-b', '128', '-s', '128', 'cf-ad9361-lpc'], stdout=subprocess.PIPE, bufsize=0)
     stdout = process.communicate()[0]
     iq = np.array(np.frombuffer(stdout, dtype=np.int16))
     iq = np.reshape(iq, (-1, 2))
-    
+
     iq_np = iq
     ap = arr_iq2ap(iq_np)
 
@@ -89,5 +91,7 @@ for i in range(10):
     # print(output_data)
     # modulation_guess = mod_to_onehot.inverse_transform(output_data)[0]
     count[mod_types[index]] += 1
+
+    time.sleep(1)
 
 print(count)
