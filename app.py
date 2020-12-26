@@ -11,36 +11,27 @@ import shlex
 
 np.seterr(divide='ignore', invalid='ignore')
 
-# Create radio
-sdr = adi.Pluto()
+
 # iio_attr -u ip:192.168.2.1 -d
 # iio_attr -u ip:192.168.2.1 -c ad9361-phy RX_LO frequency 1410000000
+# iio_attr -u ip:192.168.2.1 -c ad9361-phy voltage0 rf_bandwidth 600000
+# iio_attr -u ip:192.168.2.1 -c ad9361-phy voltage0 sampling_frequency 600000
+# iio_attr -u ip:192.168.2.1 -c ad9361-phy voltage0 gain_control_mode hybrid
 # iio_readdev -u ip:192.168.2.1 -b 128 -s 1024 cf-ad9361-lpc
 
-process = subprocess.Popen(['echo', '"Hello stdout"'], stdout=subprocess.PIPE)
+# Show deivce attributes
+process = subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-d'], stdout=subprocess.PIPE)
 stdout = process.communicate()[0]
-print 'STDOUT:{}'.format(stdout)
+print('DEVICE:')
+print(stdout.decode('utf-8'))
 
-# Configure properties
-sdr.rx_rf_bandwidth = int(600e3)
-sdr.rx_lo = int(1.41e9)
-sdr.sample_rate = sdr.rx_rf_bandwidth
-sdr.rx_buffer_size = 128
-sdr.gain_control_mode_chan0 = "hybrid"
-
-# Read properties
-print(f"RX LO {sdr.rx_lo}")
+# SETUP
+subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'RX_LO', 'frequency', '1410000000'], stdout=subprocess.PIPE)
+subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'rf_bandwidth', '600000'], stdout=subprocess.PIPE)
+subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'sampling_frequency', '600000'], stdout=subprocess.PIPE)
+subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'gain_control_mode', 'hybrid'], stdout=subprocess.PIPE)
 
 mod_types = ['a16QAM', 'a64QAM', 'b8PSK', 'bQPSK', 'cCPFSK', 'cGFSK', 'd4PAM', 'dBPSK']
-
-# fit a label binarizer
-# mod_to_onehot = LabelBinarizer()
-# mod_to_onehot.fit(mod_types)
-
-# transform the y values to one-hot encoding
-# y_train = mod_to_onehot.transform(y_train)
-
-# Normalisation is very important
 
 
 def iq2ampphase(inphase, quad):
@@ -51,13 +42,11 @@ def iq2ampphase(inphase, quad):
     phase = 2.*(phase - np.min(phase))/np.ptp(phase)-1  # rescale phase to range [-1, 1]
     return amplitude, phase
 
-# convert array of multiple iq samples into array of multiple ampphase samples
-
 
 def arr_iq2ap(X):
     X_ap = []
-    I = X[0, :]
-    Q = X[1, :]
+    I = X[:, 0]
+    Q = X[:, 1]
     amp, phase = iq2ampphase(I, Q)
     ap = np.array([amp, phase])
     return ap
@@ -68,10 +57,17 @@ interpreter = tflite.Interpreter(model_path='model.tflite')
 interpreter.allocate_tensors()
 
 count = dict.fromkeys(mod_types, 0)
-for i in range(1000):
-    iq = np.array(sdr.rx())
-    iq_np = np.array([iq.real, iq.imag])
-    qpsk = arr_iq2ap(iq_np)
+for i in range(10):
+    process = subprocess.Popen(['iio_readdev', '-u', 'ip:192.168.2.1', '-b', '128', '-s', '128', 'cf-ad9361-lpc'], stdout=subprocess.PIPE, bufsize=0)
+    stdout = process.communicate()[0]
+    iq = np.array(np.frombuffer(stdout, dtype=np.int16))
+    iq = np.reshape(iq, (-1, 2))
+    
+    iq_np = iq
+    ap = arr_iq2ap(iq_np)
+
+    print(ap)
+
     # Get input and output tensors.
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
@@ -80,7 +76,7 @@ for i in range(1000):
     # Test the model on random input data.
     input_shape = input_details[0]['shape']
     # input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
-    input_data = qpsk.reshape(input_shape).astype(np.float32)
+    input_data = ap.reshape(input_shape).astype(np.float32)
     interpreter.set_tensor(input_details[0]['index'], input_data)
 
     interpreter.invoke()
