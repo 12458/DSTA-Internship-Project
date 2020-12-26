@@ -2,6 +2,10 @@ import numpy as np
 import adi
 import iio
 import tflite_runtime.interpreter as tflite
+import subprocess
+import shlex
+
+# import sys
 
 #from sklearn.preprocessing import LabelBinarizer
 
@@ -9,16 +13,23 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Create radio
 sdr = adi.Pluto()
+# iio_attr -u ip:192.168.2.1 -d
+# iio_attr -u ip:192.168.2.1 -c ad9361-phy RX_LO frequency 1410000000
+# iio_readdev -u ip:192.168.2.1 -b 128 -s 1024 cf-ad9361-lpc
+
+process = subprocess.Popen(['echo', '"Hello stdout"'], stdout=subprocess.PIPE)
+stdout = process.communicate()[0]
+print 'STDOUT:{}'.format(stdout)
 
 # Configure properties
 sdr.rx_rf_bandwidth = int(600e3)
-sdr.rx_lo = int(2.437e9)
+sdr.rx_lo = int(1.41e9)
 sdr.sample_rate = sdr.rx_rf_bandwidth
 sdr.rx_buffer_size = 128
 sdr.gain_control_mode_chan0 = "hybrid"
 
 # Read properties
-print("RX LO %s" % (sdr.rx_lo))
+print(f"RX LO {sdr.rx_lo}")
 
 mod_types = ['a16QAM', 'a64QAM', 'b8PSK', 'bQPSK', 'cCPFSK', 'cGFSK', 'd4PAM', 'dBPSK']
 
@@ -53,7 +64,7 @@ def arr_iq2ap(X):
 
 
 # Load the TFLite model and allocate tensors.
-interpreter = tflite.Interpreter(model_path="model/cldnn_ap_model.tflite")
+interpreter = tflite.Interpreter(model_path='model.tflite')
 interpreter.allocate_tensors()
 
 count = dict.fromkeys(mod_types, 0)
