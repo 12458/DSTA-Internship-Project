@@ -4,6 +4,7 @@ import tflite_runtime.interpreter as tflite
 import subprocess
 
 
+mod_types = ['a16QAM', 'a64QAM', 'b8PSK', 'bQPSK', 'cCPFSK', 'cGFSK', 'd4PAM', 'dBPSK']
 np.seterr(divide='ignore', invalid='ignore')
 
 
@@ -26,8 +27,6 @@ subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'volta
 subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'sampling_frequency', '600000'], stdout=subprocess.PIPE)
 subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'gain_control_mode', 'hybrid'], stdout=subprocess.PIPE)
 
-mod_types = ['a16QAM', 'a64QAM', 'b8PSK', 'bQPSK', 'cCPFSK', 'cGFSK', 'd4PAM', 'dBPSK']
-
 
 def iq2ampphase(inphase, quad):
     amplitude = np.sqrt(np.square(inphase) + np.square(quad))
@@ -39,7 +38,6 @@ def iq2ampphase(inphase, quad):
 
 
 def arr_iq2ap(X):
-    X_ap = []
     I = X[:, 0]
     Q = X[:, 1]
     amp, phase = iq2ampphase(I, Q)
@@ -63,8 +61,7 @@ for i in range(10):
 
     iq_np = iq
     ap = arr_iq2ap(iq_np)
-
-    print(ap)
+    print(f"COLLECTED {i} round of I/Q Data")
 
     # Get input and output tensors.
     input_details = interpreter.get_input_details()
@@ -84,8 +81,6 @@ for i in range(10):
 
     output_data = interpreter.get_tensor(output_details[0]['index'])
     index = np.argmax(output_data)
-    # print(output_data)
-    # modulation_guess = mod_to_onehot.inverse_transform(output_data)[0]
     count[mod_types[index]] += 1
 
     time.sleep(1)
