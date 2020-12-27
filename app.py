@@ -2,11 +2,7 @@ import numpy as np
 import time
 import tflite_runtime.interpreter as tflite
 import subprocess
-import shlex
 
-# import sys
-
-#from sklearn.preprocessing import LabelBinarizer
 
 np.seterr(divide='ignore', invalid='ignore')
 
