@@ -2,17 +2,10 @@ import numpy as np
 import time
 import tflite_runtime.interpreter as tflite
 import subprocess
+import adi
 
 
 np.seterr(divide='ignore', invalid='ignore')
-
-
-# iio_attr -u ip:192.168.2.1 -d
-# iio_attr -u ip:192.168.2.1 -c ad9361-phy RX_LO frequency 1410000000
-# iio_attr -u ip:192.168.2.1 -c ad9361-phy voltage0 rf_bandwidth 600000
-# iio_attr -u ip:192.168.2.1 -c ad9361-phy voltage0 sampling_frequency 600000
-# iio_attr -u ip:192.168.2.1 -c ad9361-phy voltage0 gain_control_mode hybrid
-# iio_readdev -u ip:192.168.2.1 -b 128 -s 1024 cf-ad9361-lpc
 
 # Show deivce attributes
 process = subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-d'], stdout=subprocess.PIPE)
@@ -21,10 +14,18 @@ print('DEVICE:')
 print(stdout.decode('utf-8'))
 
 # SETUP
-subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'RX_LO', 'frequency', '1410000000'], stdout=subprocess.PIPE)
-subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'rf_bandwidth', '600000'], stdout=subprocess.PIPE)
-subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'sampling_frequency', '600000'], stdout=subprocess.PIPE)
-subprocess.Popen(['iio_attr', '-u', 'ip:192.168.2.1', '-c', 'ad9361-phy', 'voltage0', 'gain_control_mode', 'hybrid'], stdout=subprocess.PIPE)
+# Create radio
+sdr = adi.Pluto()
+
+# Configure properties
+sdr.rx_rf_bandwidth = int(600e3)
+sdr.rx_lo = int(1.41e9)
+sdr.sample_rate = sdr.rx_rf_bandwidth
+sdr.rx_buffer_size = 128
+sdr.gain_control_mode_chan0 = "hybrid"
+
+# Read properties
+print("RX LO %s" % (sdr.rx_lo))
 
 mod_types = ['a16QAM', 'a64QAM', 'b8PSK', 'bQPSK', 'cCPFSK', 'cGFSK', 'd4PAM', 'dBPSK']
 
@@ -40,8 +41,8 @@ def iq2ampphase(inphase, quad):
 
 def arr_iq2ap(X):
     X_ap = []
-    I = X[:, 0]
-    Q = X[:, 1]
+    I = X[0, :]
+    Q = X[1, :]
     amp, phase = iq2ampphase(I, Q)
     ap = np.array([amp, phase])
     return ap
@@ -56,9 +57,7 @@ count = dict.fromkeys(mod_types, 0)
 time.sleep(1)
 
 for i in range(10):
-    process = subprocess.Popen(['iio_readdev', '-u', 'ip:192.168.2.1', '-b', '128', '-s', '128', 'cf-ad9361-lpc'], stdout=subprocess.PIPE, bufsize=0)
-    stdout = process.communicate()[0]
-    iq = np.array(np.frombuffer(stdout, dtype=np.int16))
+    iq = np.array(sdr.rx())
     iq = np.reshape(iq, (-1, 2))
 
     iq_np = iq
