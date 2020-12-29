@@ -18,7 +18,7 @@ print(stdout.decode('utf-8'))
 sdr = adi.Pluto()
 
 # Configure properties
-sdr.rx_rf_bandwidth = int(600e3)
+sdr.rx_rf_bandwidth = int(4e6)
 sdr.rx_lo = int(1.41e9)
 sdr.sample_rate = sdr.rx_rf_bandwidth
 sdr.rx_buffer_size = 128
@@ -56,14 +56,11 @@ count = dict.fromkeys(mod_types, 0)
 
 time.sleep(1)
 
-for i in range(10):
+for i in range(1000):
     iq = np.array(sdr.rx())
-    iq = np.reshape(iq, (-1, 2))
 
-    iq_np = iq
+    iq_np = np.array([iq.real, iq.imag])
     ap = arr_iq2ap(iq_np)
-
-    print(ap)
 
     # Get input and output tensors.
     input_details = interpreter.get_input_details()
@@ -86,7 +83,7 @@ for i in range(10):
     # print(output_data)
     # modulation_guess = mod_to_onehot.inverse_transform(output_data)[0]
     count[mod_types[index]] += 1
+    print('.', end='', sep='')
 
-    time.sleep(1)
-
+print()
 print(count)
