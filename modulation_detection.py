@@ -56,34 +56,25 @@ count = dict.fromkeys(mod_types, 0)
 
 time.sleep(1)
 
-for i in range(1000):
+while True:
     iq = np.array(sdr.rx())
 
     iq_np = np.array([iq.real, iq.imag])
     ap = arr_iq2ap(iq_np)
 
-    # Get input and output tensors.
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    # print(input_details, '\n', output_details)
 
-    # Test the model on random input data.
     input_shape = input_details[0]['shape']
-    # input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
     input_data = ap.reshape(input_shape).astype(np.float32)
     interpreter.set_tensor(input_details[0]['index'], input_data)
 
     interpreter.invoke()
 
-    # The function `get_tensor()` returns a copy of the tensor data.
-    # Use `tensor()` in order to get a pointer to the tensor.
-
     output_data = interpreter.get_tensor(output_details[0]['index'])
     index = np.argmax(output_data)
-    # print(output_data)
-    # modulation_guess = mod_to_onehot.inverse_transform(output_data)[0]
-    count[mod_types[index]] += 1
-    print('.', end='', sep='')
+
+    print(f"Current modulation type detected: {mod_types[index]}")
 
 print()
 print(count)
