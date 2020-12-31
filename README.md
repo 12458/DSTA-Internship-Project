@@ -1,4 +1,8 @@
 # DSTA Internship Project: RF Signal Classification using Deep Learning on the edge
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4407303.svg)](https://doi.org/10.5281/zenodo.4407303)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-license.org/)
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+
 ## Abstract
 
 We demonstrate the embedded implementation of a deep learning-based RF modulation classifier that is implemented on the embedded ARM CPU of the Raspberry Pi 2 connected to the software-defined radio (SDR) platform, ADALM-PLUTO. Supported by low-power embedded computing, the received signals are classified to different modulation types in real-time. The deep neural network that is used for the RF signal classifier runs directly on the Raspberry Pi without an external Internet connection. In the demonstration setup, a HackRF One radio transmits signals with different modulation types and ADALM-PLUTO with Raspberry Pi classifies each received signal (I/Q samples) to its modulation type. 
